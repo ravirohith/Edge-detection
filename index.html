@@ -1,0 +1,164 @@
+<html>
+<head>
+
+<title>Webcam video processing</title>
+ 
+<style>
+#container {
+	margin: 0px auto;
+	width: 500px;
+	height: 375px;
+	border: 10px #333 solid;
+}
+#videoElement {
+	width: 500px;
+	height: 375px;
+	background-color: #666;
+}
+</style>
+</head>
+ 
+<body onload="showVideo()">
+<div id="container">
+	<video autoplay="true" id="videoElement">
+	
+	</video>
+</div> 
+<canvas id='canvas' width='500' height='375'></canvas>
+<script>
+var video = document.querySelector("#videoElement");
+
+navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia || navigator.oGetUserMedia;
+
+if (navigator.getUserMedia) {       
+	navigator.getUserMedia({video: true}, handleVideo, videoError);
+}
+
+function handleVideo(stream) {
+	video.src = window.URL.createObjectURL(stream);
+}
+
+function videoError(e) {
+	// do something
+}
+
+setInterval(function() { 
+    var video = document.querySelector('video'); 
+    var canvas = document.getElementById('canvas'); 
+    var ctx = canvas.getContext('2d'); 
+    ctx.drawImage(video,0,0,500,375); 
+	var data = ctx.getImageData(0,0,canvas.width,canvas.height);  
+    //invert each pixel  
+	var w = data.width;
+	var cp_w = w*4;
+    for(n=0; n<data.width*data.height; n++) {  
+        var index = n*4;
+		var r = data.data[index+0];
+		var g = data.data[index+1];
+		var b = data.data[index+2];
+		r /= 255, g /= 255, b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, l = (max + min) / 2;
+	var h1,h2,h3,his;
+    if(max == min){
+        h = s = 0; // achromatic
+    }else{
+        var d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch(max){
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+		h=h*360;
+    }
+	/*
+	// For Negative effect
+	data.data[index+0]=255-data.data[index+0];
+	data.data[index+1]=255-data.data[index+1];
+	data.data[index+2]=255-data.data[index+2];
+	*/
+	
+	// For motion detection
+	
+	/*
+	if(n==0)
+	{
+	h1=data.data[index+0];
+	h2=data.data[index+1];
+	h3=data.data[index+2];
+	his=h;
+	}
+	else{
+		if(((h1+50)>=data.data[index+0] && (h1-50)<=data.data[index+0]) && ((h2+50)>=data.data[index+1] && (h2-50)<=data.data[index+1]) && ((h3+50)>=data.data[index+2] && (h3-50)<=data.data[index+2]))
+		{
+			h1=data.data[index+0];
+			h2=data.data[index+1];
+			h3=data.data[index+2];
+			data.data[index+0]=0;
+			data.data[index+1]=0;
+			data.data[index+2]=0;
+		}
+		else
+		{
+			h1=data.data[index+0];
+			h2=data.data[index+1];
+			h3=data.data[index+2];
+			data.data[index+0]=255;
+			data.data[index+1]=255;
+			data.data[index+2]=255;
+		}
+	}*/
+	
+	//edge detection
+
+	var v_wR = data.data[index + cp_w];
+	var v_wG = data.data[index+1 + cp_w];
+	var v_wB = data.data[index+2 + cp_w];
+	
+	var h_R = data.data[index + 4];
+	var h_G = data.data[index + 5];
+	var h_B = data.data[index + 6];
+	
+	if((((v_wR+10)>=data.data[index+0] && (v_wR-10)<=data.data[index+0]) || ((h_R+10)>=data.data[index+0] && (h_R-10)<=data.data[index+0])) && (((v_wG+10)>=data.data[index+1] && (v_wG-10)<=data.data[index+1]) || ((h_G+10)>=data.data[index+1] && (h_G-10)<=data.data[index+1])) && (((v_wB+10)>=data.data[index+2] && (v_wB-10)<=data.data[index+2]) || ((h_B+10)>=data.data[index+2] && (h_B-10)<=data.data[index+2])))
+	{
+		data.data[index+0]=0;
+		data.data[index+1]=0;
+		data.data[index+2]=0;
+	}
+	else
+		{
+			data.data[index+0]=255;
+			data.data[index+1]=255;
+			data.data[index+2]=255;
+		}
+	
+	//color detection
+	/*
+	if(h>355 || h<40)
+	{
+		data.data[index+0]=255;
+		data.data[index+1]=255;
+		data.data[index+2]=255;
+	}
+	else{
+		data.data[index+0]=0;
+		data.data[index+1]=0;
+		data.data[index+2]=0;
+	}*/
+	
+    }  
+
+    ctx.putImageData(data,0,0);   
+},1); 
+
+function showVideo(){
+var canvas = document.getElementById('canvas'); 
+    var ctx = canvas.getContext('2d'); 
+    ctx.drawImage(video,0,0,500,375);
+	t=setTimeout("do()",1);
+}	
+</script>
+</body>
+</html>
